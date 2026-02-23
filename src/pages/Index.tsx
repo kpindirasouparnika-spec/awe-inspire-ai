@@ -61,10 +61,10 @@ const Index = () => {
       <header className="flex items-center justify-center py-4 border-b border-border">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-primary/15 glow-border flex items-center justify-center">
-            <Sparkles className="w-4 h-4 text-primary" />
+            <Zap className="w-4 h-4 text-primary" />
           </div>
-          <h1 className="text-lg font-semibold text-foreground tracking-tight">Nova AI</h1>
-          <span className="text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">beta</span>
+          <h1 className="text-lg font-bold text-foreground tracking-tight uppercase italic">ROBOMASTER</h1>
+          <span className="text-[10px] font-bold text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-sm uppercase tracking-wider">v1.0</span>
         </div>
       </header>
 
@@ -80,15 +80,16 @@ const Index = () => {
               className="flex flex-col items-center justify-center h-full px-4"
             >
               <motion.div
-                className="w-16 h-16 rounded-2xl bg-primary/10 glow-primary flex items-center justify-center mb-6"
-                animate={{ rotate: [0, 5, -5, 0] }}
-                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                className="w-20 h-20 rounded-2xl bg-primary/10 glow-primary flex items-center justify-center mb-6 relative"
+                animate={{ scale: [1, 1.05, 1] }}
+                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
               >
-                <Sparkles className="w-8 h-8 text-primary" />
+                <div className="absolute inset-0 bg-primary/5 rounded-2xl animate-pulse" />
+                <Zap className="w-10 h-10 text-primary relative z-10" />
               </motion.div>
-              <h2 className="text-2xl font-bold text-gradient mb-2">Hello, I'm Nova</h2>
-              <p className="text-muted-foreground text-center max-w-md mb-8">
-                Your AI assistant powered by Gemini. Ask me anything — I'm here to help.
+              <h2 className="text-3xl font-black text-gradient mb-2 italic uppercase tracking-tighter">ROBOMASTER ACTIVE</h2>
+              <p className="text-muted-foreground text-center max-w-md mb-8 font-medium">
+                Strategic AI intelligence initialized. Awaiting commands.
               </p>
               <div className="grid gap-3 w-full max-w-md">
                 {suggestions.map((s, i) => (

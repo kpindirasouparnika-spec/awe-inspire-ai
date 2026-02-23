@@ -39,7 +39,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
                 handleSubmit();
               }
             }}
-            placeholder="Ask Nova anything..."
+            placeholder="Enter command for ROBOMASTER..."
             rows={1}
             disabled={disabled}
             className="w-full bg-transparent resize-none px-4 pt-4 pb-12 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none disabled:opacity-50"

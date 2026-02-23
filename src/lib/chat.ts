@@ -20,13 +20,17 @@ export async function streamChat({
     body: JSON.stringify({ messages }),
   });
 
-  if (!resp.ok || !resp.body) throw new Error("Failed to start stream");
+  if (!resp.ok || !resp.body) {
+    const body = await resp.text();
+    throw new Error(body || "Failed to start stream");
+  }
 
   const reader = resp.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
+  let streamDone = false;
 
-  while (true) {
+  while (!streamDone) {
     const { done, value } = await reader.read();
     if (done) break;
     buffer += decoder.decode(value, { stream: true });
@@ -36,17 +40,22 @@ export async function streamChat({
       let line = buffer.slice(0, idx);
       buffer = buffer.slice(idx + 1);
       if (line.endsWith("\r")) line = line.slice(0, -1);
-      if (!line.startsWith("data: ") || line.trim() === "") continue;
+      if (line.startsWith(":") || line.trim() === "") continue;
+      if (!line.startsWith("data: ")) continue;
 
       const json = line.slice(6).trim();
-      if (json === "[DONE]") break;
+      if (json === "[DONE]") {
+        streamDone = true;
+        break;
+      }
 
       try {
         const parsed = JSON.parse(json);
-        const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (text) onDelta(text);
+        const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+        if (content) onDelta(content);
       } catch {
-        // partial JSON, ignore
+        buffer = line + "\n" + buffer;
+        break;
       }
     }
   }

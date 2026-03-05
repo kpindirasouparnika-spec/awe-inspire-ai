@@ -22,85 +22,44 @@ serve(async (req) => {
       body: JSON.stringify({
         model: "google/gemini-2.5-flash-image",
         messages: [
-          { role: "system", content: "You are an image generation AI. Generate an image based on the user's description. Be creative and produce high-quality visuals." },
           { role: "user", content: `Generate an image: ${prompt}` },
         ],
+        modalities: ["image", "text"],
       }),
     });
 
     if (!response.ok) {
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       if (response.status === 402) {
         return new Response(JSON.stringify({ error: "Payment required. Please add credits." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       const t = await response.text();
       console.error("AI gateway error:", response.status, t);
       return new Response(JSON.stringify({ error: "Image generation failed" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const data = await response.json();
+    const message = data.choices?.[0]?.message;
     
-    // Extract image data from the response
-    const content = data.choices?.[0]?.message?.content;
-    
-    // Check if the response contains inline image data
-    let imageData = null;
-    let textContent = null;
-    
-    if (Array.isArray(content)) {
-      for (const part of content) {
-        if (part.type === "image" || part.type === "image_url") {
-          imageData = part.image_url?.url || part.data || part.url;
-        } else if (part.type === "text") {
-          textContent = part.text;
-        }
-      }
-    } else if (typeof content === "string") {
-      // Check if content contains base64 image data
-      const base64Match = content.match(/data:image\/[^;]+;base64,[A-Za-z0-9+/=]+/);
-      if (base64Match) {
-        imageData = base64Match[0];
-      } else {
-        textContent = content;
-      }
-    }
-    
-    // Also check for inline_data in the raw response
-    if (!imageData && data.choices?.[0]?.message?.content) {
-      // The gateway might return the raw Gemini format
-      const rawContent = data.choices[0].message;
-      if (rawContent.parts) {
-        for (const part of rawContent.parts) {
-          if (part.inline_data) {
-            imageData = `data:${part.inline_data.mime_type};base64,${part.inline_data.data}`;
-          }
-        }
-      }
-    }
+    // Extract image from the images array
+    const imageUrl = message?.images?.[0]?.image_url?.url || null;
+    const textContent = message?.content || null;
 
-    return new Response(JSON.stringify({ 
-      image: imageData,
-      text: textContent,
-      raw: !imageData ? data : undefined
-    }), {
+    return new Response(JSON.stringify({ image: imageUrl, text: textContent }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
     console.error("image-gen error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });

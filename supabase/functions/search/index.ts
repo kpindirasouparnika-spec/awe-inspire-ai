@@ -14,7 +14,7 @@ serve(async (req) => {
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
     const systemPrompts: Record<string, string> = {
-      search: `You are ROBOMASTER Search Engine. When the user provides a search query, respond with realistic, well-structured search results. Format each result as:
+      search: `You are MASTERMIND AI Search Engine by Aagney Lineesh. When the user provides a search query, respond with realistic, well-structured search results. Format each result as:
 
 ## [Title of result](url)
 **Source:** domain.com
@@ -24,7 +24,7 @@ Brief description of the content...
 
 Provide 5-8 relevant results. Make the results look realistic with real-seeming URLs, titles, and descriptions based on your knowledge. Add a brief summary at the top. Use markdown formatting.`,
 
-      list: `You are ROBOMASTER List Generator. When the user provides a topic, generate a comprehensive, well-organized list. Use markdown formatting with:
+      list: `You are MASTERMIND AI List Generator by Aagney Lineesh. When the user provides a topic, generate a comprehensive, well-organized list. Use markdown formatting with:
 - Clear numbered or bulleted items
 - Brief descriptions for each item
 - Logical grouping with headers when appropriate

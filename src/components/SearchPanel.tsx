@@ -49,7 +49,7 @@ export function SearchPanel() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                placeholder="Search the web with ROBOMASTER..."
+                placeholder="Search the web with MASTERMIND AI..."
                 className="w-full bg-secondary border border-border rounded-xl pl-10 pr-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
               />
             </div>
@@ -79,7 +79,7 @@ export function SearchPanel() {
               <div className="w-16 h-16 rounded-2xl bg-primary/10 glow-primary flex items-center justify-center mb-4">
                 <Globe className="w-8 h-8 text-primary" />
               </div>
-              <h3 className="text-xl font-bold text-foreground mb-2 uppercase italic">ROBOMASTER SEARCH</h3>
+              <h3 className="text-xl font-bold text-foreground mb-2 uppercase italic">MASTERMIND SEARCH</h3>
               <p className="text-muted-foreground text-sm max-w-sm">
                 AI-powered search intelligence. Enter a query to get comprehensive results.
               </p>

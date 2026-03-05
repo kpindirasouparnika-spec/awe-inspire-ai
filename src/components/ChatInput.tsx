@@ -46,7 +46,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
           />
           <div className="absolute bottom-3 right-3 flex items-center gap-2">
             <span className="text-xs text-muted-foreground hidden sm:inline">
-              <Sparkles className="w-3 h-3 inline mr-1" />Gemini powered
+              <Sparkles className="w-3 h-3 inline mr-1" />Mastermind AI
             </span>
             <motion.button
               whileHover={{ scale: 1.05 }}

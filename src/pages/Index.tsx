@@ -74,7 +74,7 @@ const Index = () => {
           <div className="w-8 h-8 rounded-lg bg-primary/15 glow-border flex items-center justify-center">
             <Zap className="w-4 h-4 text-primary" />
           </div>
-          <h1 className="text-lg font-bold text-foreground tracking-tight uppercase italic">ROBOMASTER</h1>
+          <h1 className="text-lg font-bold text-foreground tracking-tight uppercase italic">MASTERMIND AI</h1>
           <span className="text-[10px] font-bold text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-sm uppercase tracking-wider">v1.0</span>
         </div>
 
@@ -125,7 +125,7 @@ const Index = () => {
                       <div className="absolute inset-0 bg-primary/5 rounded-2xl animate-pulse" />
                       <Zap className="w-10 h-10 text-primary relative z-10" />
                     </motion.div>
-                    <h2 className="text-3xl font-black text-gradient mb-2 italic uppercase tracking-tighter">ROBOMASTER ACTIVE</h2>
+                    <h2 className="text-3xl font-black text-gradient mb-2 italic uppercase tracking-tighter">MASTERMIND AI ACTIVE</h2>
                     <p className="text-muted-foreground text-center max-w-md mb-8 font-medium">
                       Strategic AI intelligence initialized. Awaiting commands.
                     </p>

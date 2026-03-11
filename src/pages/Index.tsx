@@ -187,7 +187,7 @@ const Index = () => {
                 )}
               </AnimatePresence>
             </div>
-            <ChatInput onSend={send} disabled={isLoading} lastAssistantMessage={messages.filter(m => m.role === "assistant").pop()?.content} />
+            <ChatInput onSend={send} disabled={isLoading} isLoading={isLoading} lastAssistantMessage={messages.filter(m => m.role === "assistant").pop()?.content} />
           </motion.div>
         )}
 

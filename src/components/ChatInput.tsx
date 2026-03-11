@@ -6,16 +6,18 @@ interface ChatInputProps {
   onSend: (text: string) => void;
   disabled: boolean;
   lastAssistantMessage?: string;
+  isLoading?: boolean;
 }
 
-export function ChatInput({ onSend, disabled, lastAssistantMessage }: ChatInputProps) {
+export function ChatInput({ onSend, disabled, lastAssistantMessage, isLoading }: ChatInputProps) {
   const [input, setInput] = useState("");
   const [isListening, setIsListening] = useState(false);
-  const [ttsEnabled, setTtsEnabled] = useState(false);
+  const [handsFree, setHandsFree] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const recognitionRef = useRef<any>(null);
   const lastSpokenRef = useRef<string>("");
+  const wasLoadingRef = useRef(false);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -24,42 +26,43 @@ export function ChatInput({ onSend, disabled, lastAssistantMessage }: ChatInputP
     }
   }, [input]);
 
-  // TTS: speak new assistant messages when enabled
+  // Auto-speak when loading finishes (response complete) in hands-free mode
   useEffect(() => {
-    if (ttsEnabled && lastAssistantMessage && lastAssistantMessage !== lastSpokenRef.current && lastAssistantMessage.length > 10) {
-      // Wait a bit for streaming to finish
-      const timeout = setTimeout(() => {
-        if (lastAssistantMessage !== lastSpokenRef.current) {
-          lastSpokenRef.current = lastAssistantMessage;
-          speakText(lastAssistantMessage);
-        }
-      }, 1500);
-      return () => clearTimeout(timeout);
+    if (wasLoadingRef.current && !isLoading && handsFree && lastAssistantMessage && lastAssistantMessage !== lastSpokenRef.current) {
+      lastSpokenRef.current = lastAssistantMessage;
+      speakText(lastAssistantMessage);
     }
-  }, [ttsEnabled, lastAssistantMessage]);
+    wasLoadingRef.current = !!isLoading;
+  }, [isLoading, handsFree, lastAssistantMessage]);
 
   const speakText = useCallback((text: string) => {
     if (!window.speechSynthesis) return;
     window.speechSynthesis.cancel();
-    // Strip markdown
     const clean = text.replace(/[#*`_~\[\]()>!|-]/g, "").replace(/\n+/g, ". ");
     const utterance = new SpeechSynthesisUtterance(clean);
-    // Try to detect Malayalam
     const hasMalayalam = /[\u0D00-\u0D7F]/.test(clean);
     utterance.lang = hasMalayalam ? "ml-IN" : "en-US";
     utterance.rate = 1;
     utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
+    utterance.onend = () => {
+      setIsSpeaking(false);
+      // In hands-free mode, auto-start listening again after speaking
+      if (handsFree) {
+        setTimeout(() => startListening(), 500);
+      }
+    };
     utterance.onerror = () => setIsSpeaking(false);
     window.speechSynthesis.speak(utterance);
-  }, []);
+  }, [handsFree]);
 
-  const toggleTTS = () => {
-    if (ttsEnabled) {
+  const toggleHandsFree = () => {
+    if (handsFree) {
       window.speechSynthesis?.cancel();
+      recognitionRef.current?.stop();
       setIsSpeaking(false);
+      setIsListening(false);
     }
-    setTtsEnabled(!ttsEnabled);
+    setHandsFree(!handsFree);
   };
 
   const startListening = useCallback(() => {
@@ -71,19 +74,30 @@ export function ChatInput({ onSend, disabled, lastAssistantMessage }: ChatInputP
     const recognition = new SpeechRecognitionAPI();
     recognition.continuous = false;
     recognition.interimResults = true;
-    recognition.lang = "ml-IN"; // Default to Malayalam, also picks up English
+    recognition.lang = "ml-IN";
     recognition.maxAlternatives = 1;
+
+    let finalTranscript = "";
 
     recognition.onresult = (event: SpeechRecognitionEvent) => {
       let transcript = "";
       for (let i = 0; i < event.results.length; i++) {
         transcript += event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscript = transcript;
+        }
       }
       setInput(transcript);
     };
 
     recognition.onend = () => {
       setIsListening(false);
+      // In hands-free mode, auto-send when speech ends
+      if (handsFree && finalTranscript.trim()) {
+        onSend(finalTranscript.trim());
+        setInput("");
+        finalTranscript = "";
+      }
     };
 
     recognition.onerror = () => {
@@ -93,7 +107,7 @@ export function ChatInput({ onSend, disabled, lastAssistantMessage }: ChatInputP
     recognitionRef.current = recognition;
     recognition.start();
     setIsListening(true);
-  }, []);
+  }, [handsFree, onSend]);
 
   const stopListening = useCallback(() => {
     recognitionRef.current?.stop();
@@ -121,7 +135,7 @@ export function ChatInput({ onSend, disabled, lastAssistantMessage }: ChatInputP
                 handleSubmit();
               }
             }}
-            placeholder={isListening ? "🎤 Listening... speak now" : "Enter command for MASTERMIND AI..."}
+            placeholder={isListening ? "🎤 Listening... speak now" : handsFree ? "🎙️ Hands-free mode ON" : "Enter command for MASTERMIND AI..."}
             rows={1}
             disabled={disabled}
             className="w-full bg-transparent resize-none px-4 pt-4 pb-12 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none disabled:opacity-50"
@@ -131,20 +145,20 @@ export function ChatInput({ onSend, disabled, lastAssistantMessage }: ChatInputP
               <Sparkles className="w-3 h-3 inline mr-1" />Mastermind AI
             </span>
 
-            {/* TTS Toggle */}
+            {/* Hands-free Toggle */}
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={toggleTTS}
+              onClick={toggleHandsFree}
               className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${
-                ttsEnabled
+                handsFree
                   ? "bg-accent/20 text-accent border border-accent/30"
                   : "bg-secondary text-muted-foreground hover:text-foreground"
               }`}
-              title={ttsEnabled ? "Voice output ON" : "Voice output OFF"}
+              title={handsFree ? "Hands-free ON (speak & hear)" : "Turn on hands-free mode"}
             >
               <AnimatePresence mode="wait">
-                {ttsEnabled ? (
+                {handsFree ? (
                   <motion.div key="on" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
                     <Volume2 className={`w-4 h-4 ${isSpeaking ? "animate-pulse" : ""}`} />
                   </motion.div>

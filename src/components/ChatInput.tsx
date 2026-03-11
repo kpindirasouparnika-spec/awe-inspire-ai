@@ -14,7 +14,7 @@ export function ChatInput({ onSend, disabled, lastAssistantMessage }: ChatInputP
   const [ttsEnabled, setTtsEnabled] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const recognitionRef = useRef<any>(null);
   const lastSpokenRef = useRef<string>("");
 
   useEffect(() => {

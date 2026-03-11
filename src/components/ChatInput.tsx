@@ -68,7 +68,7 @@ export function ChatInput({ onSend, disabled, lastAssistantMessage }: ChatInputP
       alert("Speech recognition not supported in this browser. Try Chrome.");
       return;
     }
-    const recognition = new SpeechRecognition();
+    const recognition = new SpeechRecognitionAPI();
     recognition.continuous = false;
     recognition.interimResults = true;
     recognition.lang = "ml-IN"; // Default to Malayalam, also picks up English

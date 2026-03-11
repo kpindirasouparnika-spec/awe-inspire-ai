@@ -1,15 +1,21 @@
-import { useState, useRef, useEffect } from "react";
-import { motion } from "framer-motion";
-import { Send, Sparkles } from "lucide-react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Send, Sparkles, Mic, MicOff, Volume2, VolumeX } from "lucide-react";
 
 interface ChatInputProps {
   onSend: (text: string) => void;
   disabled: boolean;
+  lastAssistantMessage?: string;
 }
 
-export function ChatInput({ onSend, disabled }: ChatInputProps) {
+export function ChatInput({ onSend, disabled, lastAssistantMessage }: ChatInputProps) {
   const [input, setInput] = useState("");
+  const [isListening, setIsListening] = useState(false);
+  const [ttsEnabled, setTtsEnabled] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const recognitionRef = useRef<any>(null);
+  const lastSpokenRef = useRef<string>("");
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -17,6 +23,82 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
       textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 150) + "px";
     }
   }, [input]);
+
+  // TTS: speak new assistant messages when enabled
+  useEffect(() => {
+    if (ttsEnabled && lastAssistantMessage && lastAssistantMessage !== lastSpokenRef.current && lastAssistantMessage.length > 10) {
+      // Wait a bit for streaming to finish
+      const timeout = setTimeout(() => {
+        if (lastAssistantMessage !== lastSpokenRef.current) {
+          lastSpokenRef.current = lastAssistantMessage;
+          speakText(lastAssistantMessage);
+        }
+      }, 1500);
+      return () => clearTimeout(timeout);
+    }
+  }, [ttsEnabled, lastAssistantMessage]);
+
+  const speakText = useCallback((text: string) => {
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    // Strip markdown
+    const clean = text.replace(/[#*`_~\[\]()>!|-]/g, "").replace(/\n+/g, ". ");
+    const utterance = new SpeechSynthesisUtterance(clean);
+    // Try to detect Malayalam
+    const hasMalayalam = /[\u0D00-\u0D7F]/.test(clean);
+    utterance.lang = hasMalayalam ? "ml-IN" : "en-US";
+    utterance.rate = 1;
+    utterance.onstart = () => setIsSpeaking(true);
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+    window.speechSynthesis.speak(utterance);
+  }, []);
+
+  const toggleTTS = () => {
+    if (ttsEnabled) {
+      window.speechSynthesis?.cancel();
+      setIsSpeaking(false);
+    }
+    setTtsEnabled(!ttsEnabled);
+  };
+
+  const startListening = useCallback(() => {
+    const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognitionAPI) {
+      alert("Speech recognition not supported in this browser. Try Chrome.");
+      return;
+    }
+    const recognition = new SpeechRecognitionAPI();
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.lang = "ml-IN"; // Default to Malayalam, also picks up English
+    recognition.maxAlternatives = 1;
+
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      let transcript = "";
+      for (let i = 0; i < event.results.length; i++) {
+        transcript += event.results[i][0].transcript;
+      }
+      setInput(transcript);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognition.onerror = () => {
+      setIsListening(false);
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
+    setIsListening(true);
+  }, []);
+
+  const stopListening = useCallback(() => {
+    recognitionRef.current?.stop();
+    setIsListening(false);
+  }, []);
 
   const handleSubmit = () => {
     const trimmed = input.trim();
@@ -39,7 +121,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
                 handleSubmit();
               }
             }}
-            placeholder="Enter command for MASTERMIND AI..."
+            placeholder={isListening ? "🎤 Listening... speak now" : "Enter command for MASTERMIND AI..."}
             rows={1}
             disabled={disabled}
             className="w-full bg-transparent resize-none px-4 pt-4 pb-12 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none disabled:opacity-50"
@@ -48,6 +130,49 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
             <span className="text-xs text-muted-foreground hidden sm:inline">
               <Sparkles className="w-3 h-3 inline mr-1" />Mastermind AI
             </span>
+
+            {/* TTS Toggle */}
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={toggleTTS}
+              className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${
+                ttsEnabled
+                  ? "bg-accent/20 text-accent border border-accent/30"
+                  : "bg-secondary text-muted-foreground hover:text-foreground"
+              }`}
+              title={ttsEnabled ? "Voice output ON" : "Voice output OFF"}
+            >
+              <AnimatePresence mode="wait">
+                {ttsEnabled ? (
+                  <motion.div key="on" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
+                    <Volume2 className={`w-4 h-4 ${isSpeaking ? "animate-pulse" : ""}`} />
+                  </motion.div>
+                ) : (
+                  <motion.div key="off" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
+                    <VolumeX className="w-4 h-4" />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.button>
+
+            {/* Mic Button */}
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={isListening ? stopListening : startListening}
+              disabled={disabled}
+              className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${
+                isListening
+                  ? "bg-red-500/20 text-red-400 border border-red-500/30 animate-pulse"
+                  : "bg-secondary text-muted-foreground hover:text-foreground"
+              }`}
+              title={isListening ? "Stop listening" : "Start voice input"}
+            >
+              {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+            </motion.button>
+
+            {/* Send Button */}
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
